@@ -13,14 +13,27 @@ class TasksController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+
     public function index()
     {
-        $tasks = Task::all();
-
-        return view('tasks.index', [
-            'tasks' => $tasks,
-        ]);
+        $data = [];
+        if (\Auth::check()) {
+            
+            $user = \Auth::user();
+            $tasks = Task::all();
+            
+            $data = [
+                'user' => $user,
+                'tasks' => $tasks,
+            ];
+            
+            return view('tasks.index',$data);
+            
+        }else {
+            return view('welcome');
+        }
     }
+    
 
     /**
      * Show the form for creating a new resource.
@@ -42,20 +55,23 @@ class TasksController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    
+     public function store(Request $request)
     {
         $this->validate($request, [
             'content' => 'required|max:191',
             'status' => 'required|max:10',
         ]);
-        
-        $task = new Task;
-        $task->content = $request->content;
-        $task->status = $request->status;
-        $task->save();
 
-        return redirect('/');
+        $request->user()->tasks()->create([
+            'content' => $request->content,
+            'status' => $request->status,
+        ]);
+
+        // return back();
+        return redirect('/tasks/');
     }
+    
 
     /**
      * Display the specified resource.
@@ -67,9 +83,14 @@ class TasksController extends Controller
     {
         $task = Task::find($id);
 
-        return view('tasks.show', [
+        if (\Auth::id() === $task->user_id) {
+            return view('tasks.show', [
             'task' => $task,
-        ]);
+            ]);
+        }
+
+        return redirect('/tasks/');
+
     }
 
     /**
@@ -106,7 +127,7 @@ class TasksController extends Controller
         $task->status = $request->status;
         $task->save();
 
-        return redirect('/');
+        return redirect('/tasks/');
     }
 
     /**
@@ -117,9 +138,12 @@ class TasksController extends Controller
      */
     public function destroy($id)
     {
+       
         $task = Task::find($id);
-        $task->delete();
+        if (\Auth::id() === $task->user_id) {
+            $task->delete();
+        }
 
-        return redirect('/');
+        return redirect('/tasks/');
     }
 }
