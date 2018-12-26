@@ -18,9 +18,9 @@ class TasksController extends Controller
     {
         $data = [];
         if (\Auth::check()) {
-            
             $user = \Auth::user();
-            $tasks = Task::all();
+            //$tasks = Task::all();
+            $tasks = $user->tasks()->paginate(10);
             
             $data = [
                 'user' => $user,
@@ -103,9 +103,14 @@ class TasksController extends Controller
     {
         $task = Task::find($id);
 
-        return view('tasks.edit', [
+        if (\Auth::id() === $task->user_id) {
+            return view('tasks.show', [
             'task' => $task,
-        ]);
+            ]);
+        }
+        
+        return redirect('/tasks/');
+
     }
 
     /**
@@ -117,16 +122,20 @@ class TasksController extends Controller
      */
     public function update(Request $request, $id)
     {
+        
         $this->validate($request, [
             'content' => 'required|max:191',
             'status' => 'required|max:10',
         ]);
         
         $task = Task::find($id);
-        $task->content = $request->content;
-        $task->status = $request->status;
-        $task->save();
-
+        
+        if (\Auth::id() === $task->user_id) {
+            $task->content = $request->content;
+            $task->status = $request->status;
+            $task->save();
+        }
+        
         return redirect('/tasks/');
     }
 
